@@ -1,0 +1,8 @@
+{
+  "name": "ContCrops",
+  "description": "سوق زراعي مجاني ١٠٠٪ من الأرض للمصنع للتصدير - يغطي فريش، مجمد، مجفف، تصنيع غذائي، استشارات ونقل مبرد",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

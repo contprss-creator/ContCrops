@@ -1,0 +1,176 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id                 String                @id @default(uuid())
+  name               String
+  phone              String                @unique
+  email              String?               @unique
+  password           String
+  accountType        String                @default("مزارع") // مزارع, تاجر, مصنع, مهندس, مورد, مصدر
+  role               String                @default("user") // user, admin
+  governorate        String                @default("القاهرة")
+  location           String                @default("مصر")
+  avatar             String?
+  bio                String?
+  isVerified         Boolean               @default(false)
+  verificationStatus String                @default("unverified") // verified, pending, unverified
+  verifiedAt         DateTime?
+  verifiedDocuments  String?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+
+  posts              Post[]
+  ads                Ad[]
+  comments           Comment[]
+  sentMessages       Message[]             @relation("SentMessages")
+  receivedMessages   Message[]             @relation("ReceivedMessages")
+  notifications      Notification[]
+  settings           UserSettings?
+  policyAgreements   UserPolicyAgreement[]
+}
+
+model UserSettings {
+  id                 String   @id @default(uuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  language           String   @default("ar")
+  darkMode           Boolean  @default(false)
+  emailNotifications Boolean  @default(true)
+  pushNotifications  Boolean  @default(true)
+  smsNotifications   Boolean  @default(false)
+  soundEnabled       Boolean  @default(true)
+  privacyProfile     String   @default("public") // public, private, fellows_only
+  showPhone          Boolean  @default(true)
+  allowMessagesFrom  String   @default("everyone") // everyone, fellows_only
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model GeneralSettings {
+  id                String   @id @default(uuid())
+  allowRegister     Boolean  @default(true)
+  requireAdApproval Boolean  @default(true)
+  allowComments     Boolean  @default(true)
+  maintenance       Boolean  @default(false)
+  showPrices        Boolean  @default(true)
+  siteName          String   @default("ContCrops")
+  updatedAt         DateTime @updatedAt
+}
+
+model Ad {
+  id          String    @id @default(uuid())
+  title       String
+  desc        String
+  category    String    // فريش, مجمد, مجفف, تصنيع غذائي, استشارات, نقل
+  qty         String
+  price       String
+  location    String
+  image       String?
+  status      String    @default("نشط") // نشط, قيد المراجعة, مرفوض
+  likes       Int       @default(0)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comments    Comment[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Post {
+  id        String    @id @default(uuid())
+  text      String
+  image     String?
+  likes     Int       @default(0)
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comments  Comment[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  text      String
+  likes     Int      @default(0)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  adId      String?
+  ad        Ad?      @relation(fields: [adId], references: [id], onDelete: Cascade)
+  postId    String?
+  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Conversation {
+  id            String    @id @default(uuid())
+  userOneId     String
+  userTwoId     String
+  lastMessage   String?
+  lastMessageAt DateTime  @default(now())
+  messages      Message[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Message {
+  id                 String       @id @default(uuid())
+  text               String
+  conversationId     String
+  conversation       Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId           String
+  sender             User         @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId         String
+  receiver           User         @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  isEdited           Boolean      @default(false)
+  deletedForSender   Boolean      @default(false)
+  deletedForReceiver Boolean      @default(false)
+  deletedForEveryone Boolean      @default(false)
+  read               Boolean      @default(false)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  actorId   String?
+  type      String   // comment, message, like, ad_approved, request, price
+  title     String
+  desc      String
+  unread    Boolean  @default(true)
+  link      String?
+  createdAt DateTime @default(now())
+}
+
+model Policy {
+  id         String                @id @default(uuid())
+  slug       String                @unique // privacy-policy, terms-of-service, ad-policy
+  title      String
+  content    String
+  version    String                @default("1.0")
+  isRequired Boolean               @default(true)
+  createdAt  DateTime              @default(now())
+  updatedAt  DateTime              @updatedAt
+  agreements UserPolicyAgreement[]
+}
+
+model UserPolicyAgreement {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  policyId  String
+  policy    Policy   @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  ipAddress String
+  agreedAt  DateTime @default(now())
+
+  @@unique([userId, policyId])
+}
